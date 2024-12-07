@@ -7,7 +7,13 @@ import time
 import select
 import mysql.connector
 from dotenv import load_dotenv
+import random as rand
 
+
+# TODO: update this file to reflect google doc requirements
+# TODO: return orgs also not mentioned in DB-- filter these with ORG, or INC, or institution etc. don't want random strings included
+# list [number] shows all possible did for a given number. ex: [list 141] -> 14111, 141453, etc. basically all possible did given a number
+# show [did] will show whether a phenom was detected in a hearing
 
 class IRC:
     def __init__(self):
@@ -60,34 +66,106 @@ class Bot():
         self.channel = "##ScottPramukChannelTest"
         self.botnick = f"sdl-bot"
 
-        self.irc = IRC()
-        self.irc.connect(server, port, self.channel, self.botnick)
-
         self.numConversations = 0
         self.choices = set()
         self.cursor = None
         self.connection = None
+        self.didMap = dict()
 
         self.createConnection()
-        self.generateChoices()
+        self.generateBIDs()
+
+        self.irc = IRC()
+        self.irc.connect(server, port, self.channel, self.botnick)
 
     def createConnection(self):
         self.connection = mysql.connector.connect(
-            host=os.getenv("SQL_DB_host"),
-            user=os.getenv("SQL_DB_user"),
-            password=os.getenv("SQL_DB_password"),
-            database=os.getenv("SQL_DB_database"),
+            host=os.getenv("myhost"),
+            user=os.getenv("myuser"),
+            password=os.getenv("mypass"),
+            database=os.getenv("mydb"),
             connection_timeout=300,  # Set the connection timeout in seconds
             buffered=True            # Ensures complete result sets are fetched
         )
 
-    def generateChoices(self):
+    def valid_did_stem(self, num):
+        # Function to find a stem of did that is close to the number entered by user
+        maxDist = 100000000
+        closeDID = None
+        for key in self.didMap.keys():
+            if abs(int(str(key)[0:len(str(num))]) - int(num)) < maxDist:
+                closeDID = str(key)[0:len(str(num))]
+                maxDist = abs(int(str(key)[0:len(str(num))]) - int(num))
+        return closeDID
+
+    def on_list(self, num, userName):
+        # Need to get a list of all dids
+        # TODO what to do when the list is too long to display all values? Pick a random sample?
+        res = []
+        for key in self.didMap.keys():
+            if str(key).startswith(str(num)):
+                res.append(key)
+        if not res:
+            self.irc.send(self.channel, f"{
+                userName}: No entries in Utterance table with DID that starts with {num}. Instead, try {self.valid_did_stem(num)}")
+            return
+        if len(res) > 40:
+            res = rand.sample(res, 40)
+            self.irc.send(self.channel, f"{
+                userName}: 40 Randomly selected possible DID values:")
+        else:
+            self.irc.send(self.channel, f"{
+                userName}: Possible DID values:")
+        for i in range(0, len(res), 10):
+            if i + 10 < len(res):
+                self.irc.send(self.channel, f"{
+                    userName}: {res[i:i+10]}")
+            else:
+                self.irc.send(self.channel, f"{
+                    userName}: {res[i:]}")
+
+    def on_show(self, did, userName):
+        if not did.isdigit():
+            self.irc.send(self.channel, f"{
+                userName}: DID must be an integer.")
+            return
+        elif did.isdigit() and int(did) not in self.didMap.keys():
+            self.irc.send(self.channel, f"{
+                userName}: Invalid did selected.")
+            return
+        # Collect all Utterance with the specified did
+        utterances = self.collectUtterance(did)
+        if not utterances:
+            self.irc.send(self.channel, f"{
+                userName}: No utterances with this did were found.")
+        # TODO do NLP tasks on this list of utterances
+        self.irc.send(self.channel, f"{
+            userName}: Utterances found. Bill discussed: {self.didMap[int(did)][0]} ")
+        print(utterances)
+
+    def collectUtterance(self, did):
+        utterances = []
         self.cursor = self.connection.cursor()
-        self.cursor.execute("SELECT bid,hid FROM BillDiscussion limit 20")
+        self.cursor.execute(
+            f"SELECT text,pid FROM Utterance where did = {did}")
         rows_table = self.cursor.fetchall()  # Fetch the results of the first query
         self.cursor.close()
         for row in rows_table:
-            self.choices.add((row[0], row[1]))
+            # list of the form: (text,pid of speaker)
+            utterances.append((row[0], row[1]))
+        return utterances
+
+    def generateBIDs(self):
+        # Idea: create dict with all unique dids as keys, (bid,hid) as values
+        self.cursor = self.connection.cursor()
+        # Query to generate all DIDs that are seen in the speeches table
+        self.cursor.execute(
+            "SELECT B.did,B.bid,B.hid FROM BillDiscussion B, Utterance U where B.did = U.did where U.lastTouched > '2023-01-01' AND U.state = 'CA'")
+        rows_table = self.cursor.fetchall()  # Fetch the results of the first query
+        self.cursor.close()
+        for row in rows_table:
+            # DID -> (bid,hid)
+            self.didMap[row[0]] = (row[1], row[2])
 
     def on_quit(self, userName):
         self.irc.send(self.channel, f"{
@@ -96,42 +174,16 @@ class Bot():
         sys.exit()
 
     def on_who(self, userName):
-        if not self.choices:
-            self.cursor = self.connection.cursor()
-            self.cursor.execute("SELECT bid,hid FROM BillDiscussion limit 20")
-            rows_table = self.cursor.fetchall()  # Fetch the results of the first query
-            self.cursor.close()
-            for row in rows_table:
-                self.choices.add((row[0], row[1]))
         resp1 = f"{userName}: My name is {
             self.botnick}. I was created by Scott, Luke, Daniel, CSC 482-01"
         # resp2 = f"{userName}: I can generate a random picture of a cat for you with the command: [{self.botnick}: iluvcats]"
-        resp3 = f"{userName}: Here is a list of Bill ID, Hearing ID tuples: {
-            list(self.choices)[5]}. Choose a valid entry and I will find the phenoms from the hearing transcript! Use the command: [{self.botnick}: phenoms: BID, HID]"
+        resp2 = f"{userName}: Use the command: [{
+            self.botnick}: list [integer]] to get a list of valid discussion IDs that begin with the digits in the integer."
+        resp3 = f"{userName}: Use the command: [{
+            self.botnick}: show [did]] where did is a valid discussion ID and I will output all phenoms detected in utterances tagged with this did."
         self.irc.send(self.channel, resp1)
-        # self.irc.send(self.channel, resp2)
+        self.irc.send(self.channel, resp2)
         self.irc.send(self.channel, resp3)
-
-    def on_phenom(self, bid, hid):
-        self.cursor = self.connection.cursor()
-        self.cursor.execute(f"SELECT did FROM BillDiscussion where bid = '{
-                            bid}' and hid = {hid}")
-        rows_table = self.cursor.fetchall()  # Fetch the results of the first query
-        self.cursor.close()
-        curDid = None
-        for row in rows_table:
-            curDid = row[0]
-        self.cursor = self.connection.cursor()
-        self.cursor.execute(f"SELECT text FROM Speeches where did = {
-                            curDid}")
-        rows_table = self.cursor.fetchall()  # Fetch the results of the first query
-        allText = []
-        for row in rows_table:
-            print(row[0])
-            allText.append(row[0])
-        # allText is a list with each element being the text of a speech
-        # We can run our phenom detection on each element which will allow us to also return the element that a certain phenom is linked to
-        self.cursor.close()
 
     def get_username_from_text(self, text):
         return text[text.index(':') + 1: text.index("!")].replace("@", "")
@@ -149,22 +201,24 @@ class Bot():
                     self.on_forget(userName)
                 elif re.search(rf'{self.botnick}:\s*(who are you|usage)', text, re.IGNORECASE):
                     self.on_who(userName)
-                elif re.search(rf'{self.botnick}:\s*(phenom):\s*(.*)', text, re.IGNORECASE):
-                    # Regex to extract the content after 'phenom:'
-                    pattern = r"(?<=phenom: )([\w\s,]+)"
+
+                elif re.search(rf'{self.botnick}:\s*(list)\s*(.*)', text, re.IGNORECASE):
+                    print(f"List command:")
+                    # Regex to extract everything after 'list'
+                    pattern = r"(?<=list\s).*"
                     # Perform regex search
                     match = re.search(pattern, text)
                     if match:
-                        result = [item.strip()
-                                  for item in match.group(1).split(",")]
-                        print("Extracted values:", result)
-                        if (result[0], int(result[1])) in self.choices:
-                            self.irc.send(
-                                self.channel, "Valid choice selected. Generating phenoms!")
-                            self.on_phenom(result[0], result[1])
-
-                    else:
-                        print("No match found")
+                        result = match.group(0).strip()
+                        self.on_list(result, userName)
+                elif re.search(rf'{self.botnick}:\s*(show)\s*(.*)', text, re.IGNORECASE):
+                    # Regex to extract everything after 'list'
+                    pattern = r"(?<=show\s).*"
+                    # Perform regex search
+                    match = re.search(pattern, text)
+                    if match:
+                        result = match.group(0).strip()
+                        self.on_show(result, userName)
                 else:
                     continue
 
