@@ -8,12 +8,13 @@ import select
 import mysql.connector
 from dotenv import load_dotenv
 import random as rand
-
+import csv
 
 # TODO: update this file to reflect google doc requirements
 # TODO: return orgs also not mentioned in DB-- filter these with ORG, or INC, or institution etc. don't want random strings included
 # list [number] shows all possible did for a given number. ex: [list 141] -> 14111, 141453, etc. basically all possible did given a number
 # show [did] will show whether a phenom was detected in a hearing
+
 
 class IRC:
     def __init__(self):
@@ -157,15 +158,20 @@ class Bot():
 
     def generateBIDs(self):
         # Idea: create dict with all unique dids as keys, (bid,hid) as values
-        self.cursor = self.connection.cursor()
-        # Query to generate all DIDs that are seen in the speeches table
-        self.cursor.execute(
-            "SELECT B.did,B.bid,B.hid FROM BillDiscussion B, Utterance U where B.did = U.did where U.lastTouched > '2023-01-01' AND U.state = 'CA'")
-        rows_table = self.cursor.fetchall()  # Fetch the results of the first query
-        self.cursor.close()
-        for row in rows_table:
-            # DID -> (bid,hid)
-            self.didMap[row[0]] = (row[1], row[2])
+        # Open the CSV file for reading
+        with open('map.csv', newline='', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile)
+            # Skip the header
+            next(reader)
+            # Iterate over each row
+            i = 0
+            for row in reader:
+                i += 1
+                did, bid, hid = row
+                if i < 10:
+                    print(f'did: {did}, bid: {bid}, hid: {hid}')
+
+                self.didMap[int(did)] = (str(bid), int(hid))
 
     def on_quit(self, userName):
         self.irc.send(self.channel, f"{
