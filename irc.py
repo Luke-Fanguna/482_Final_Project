@@ -158,19 +158,14 @@ class Bot():
 
     def generateBIDs(self):
         # Idea: create dict with all unique dids as keys, (bid,hid) as values
-        # Open the CSV file for reading
+        # Open the CSV file
         with open('map.csv', newline='', encoding='utf-8') as csvfile:
             reader = csv.reader(csvfile)
-            # Skip the header
+            # Skip header
             next(reader)
-            # Iterate over each row
-            i = 0
+            # Iterate over each row in CSV
             for row in reader:
-                i += 1
                 did, bid, hid = row
-                if i < 10:
-                    print(f'did: {did}, bid: {bid}, hid: {hid}')
-
                 self.didMap[int(did)] = (str(bid), int(hid))
 
     def on_quit(self, userName):
@@ -182,7 +177,6 @@ class Bot():
     def on_who(self, userName):
         resp1 = f"{userName}: My name is {
             self.botnick}. I was created by Scott, Luke, Daniel, CSC 482-01"
-        # resp2 = f"{userName}: I can generate a random picture of a cat for you with the command: [{self.botnick}: iluvcats]"
         resp2 = f"{userName}: Use the command: [{
             self.botnick}: list [integer]] to get a list of valid discussion IDs that begin with the digits in the integer."
         resp3 = f"{userName}: Use the command: [{
@@ -198,7 +192,7 @@ class Bot():
         while True:
             text = self.irc.get_response()
             print("RECEIVED ==> ", text)
-            # should the usage of a command reset the start time? would allow for more cmds
+
             if text and "PRIVMSG" in text and self.channel in text and self.botnick + ":" in text:
                 userName = self.get_username_from_text(text)
                 if re.search(rf'{self.botnick}:\s*(die)', text, re.IGNORECASE) and '-bot' not in userName:
@@ -209,7 +203,6 @@ class Bot():
                     self.on_who(userName)
 
                 elif re.search(rf'{self.botnick}:\s*(list)\s*(.*)', text, re.IGNORECASE):
-                    print(f"List command:")
                     # Regex to extract everything after 'list'
                     pattern = r"(?<=list\s).*"
                     # Perform regex search
