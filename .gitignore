@@ -3,3 +3,4 @@ DH2024_Corpus_Release/
 utterance*
 myenv
 .env
+*.csv
