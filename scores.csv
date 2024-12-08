@@ -1,6 +1,0 @@
-predictions_x,reason_x,text,score
-True,toxicity,"Among males 15-19, the chlamydia rate among African-Americans was 13.1x the rate among whites and gonorrhea 37.4x that of young white men.",0.04480764
-True,toxicity,"Okay, thank you. Actually it's a lot information. In fact, it's a different place than we were a year ago. I mean a year ago, if you had said we'd be talking about having buffers because we would meet the three court judge numbers, I think people would have probably said you were crazy.",0.09703216
-True,toxicity,"So, I think, the reason it's on the agenda so we could talk about openly, so everybody can understand why it's there, and so that if that letter comes out again then Mr. Bigelow is going  to put his hat on and there will be hell to pay.",0.20203249
-True,toxicity,"Sonoma Developmental Center had over thirty rapes and abuses of women, who really don't have the right to even, or the capacity, to give consent to sexual activity.  They have been raped, abused.",0.21076337
-True,toxicity,"Yeah, let me make two final points and I'll get out of your way.",0.042439267
