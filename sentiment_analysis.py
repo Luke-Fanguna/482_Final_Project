@@ -215,7 +215,7 @@ def pprint_discussion(metadata, transcript_info):
     print(f"\t{line['text']}")
   print()
 
-discussion = bill_discussion_info(10003, "CA_201720180SR7")
+discussion = bill_discussion_info(254743, "CA_201720180AB2411")
 
 from transformers import AutoModelForSequenceClassification, pipeline, AutoTokenizer
 
@@ -258,8 +258,6 @@ def create_speakers():
 
   for speaker in speakers:
     speakers[speaker]['avg_sentiment'] = get_avg_sentiment(speakers[speaker]['sentiment'])
-
-  
 
   return speakers
 
@@ -339,12 +337,99 @@ print_stats()
 
 (min_speaker, min_avg_sentiment), (max_speaker, max_avg_sentiment) = find_min_max_speaker_sentiment()
 print(f"{min_speaker} was the most negative speaker during the hearing.")
-#print(get_utterances_summary_large_book(min_speaker))
-#print(get_utterances_summary_bart(min_speaker))
 print(f"{max_speaker} was the most positive speaker during the hearing.")
-#print(get_utterances_summary_large_book(max_speaker))
-#print(get_utterances_summary_bart(max_speaker))
 
 (min_utterances_speakers, min_utterances), (max_utterances_speakers, max_utterances) = find_min_max_speaker_utterances()
-print(f"{min_utterances_speakers} spoke the least during the hearing, speaking only {min_utterances} times")
-print(f"{max_utterances_speakers} spoke the most during the hearing, speaking {max_utterances} times")
+print(f"{min_utterances_speakers} spoke the least during the hearing, speaking only {min_utterances} times.")
+print(f"{max_utterances_speakers} spoke the most during the hearing, speaking {max_utterances} times.")
+
+import nltk
+from gensim import corpora
+from gensim.models import LdaModel
+from gensim.utils import simple_preprocess
+from nltk.corpus import stopwords
+import re
+import logging
+
+logging.getLogger('gensim').setLevel(logging.ERROR)
+
+nltk.download('stopwords', quiet=True)
+
+texts = [entry["text"] for entry in discussion['transcript']]
+
+from huggingface_hub import InferenceClient
+client = InferenceClient(api_key="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")
+
+def get_utterances_summary_mistral(speaker):
+  utterances = speakers[speaker]['utterances']
+
+  messages = [
+    {
+      "role": "user",
+      "content": f"Provide a concise two sentence analysis of {speaker}'s opinion given their utterances: {' '.join(utterances)}"
+    }
+  ]
+
+  completion = client.chat.completions.create(model="mistralai/Mistral-Nemo-Instruct-2407", messages=messages, max_tokens=500)
+  category = completion.choices[0].message.content
+
+  return category
+
+print(get_utterances_summary_mistral(min_speaker))
+print(get_utterances_summary_mistral(max_speaker))
+
+def preprocess(text, stop_words):
+  result = []
+  for token in simple_preprocess(text, deacc=True):
+    if token not in stop_words and len(token) > 3:
+      result.append(token)
+  return result
+
+def get_topic_lists_from_pdf():
+  names = set()
+  for speaker in discussion['transcript']:
+    names.add(speaker['first name'].lower())
+    names.add(speaker['last name'].lower())
+
+  stop_words = set(stopwords.words(['english']))
+
+  processed_documents = [preprocess(t, stop_words | names) for t in texts]
+
+  dictionary = corpora.Dictionary(processed_documents)
+  corpus = [dictionary.doc2bow(doc) for doc in processed_documents]
+  
+  lda_model = LdaModel(corpus, id2word=dictionary)
+  topics = lda_model.print_topics(num_topics=5, num_words=15)
+
+  topics_ls = []
+  for topic in topics:
+    words = topic[1].split("+")
+    topic_words = [word.split("*")[1].replace('"', '').strip() for word in words]
+    topics_ls.append(topic_words)
+  return topics_ls
+
+from huggingface_hub import InferenceClient
+client = InferenceClient(api_key="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")
+
+def split_camel_case(text):
+  words = re.findall(r'[A-Z]?[a-z]+|[A-Z]+(?![a-z])', text)
+  return words
+
+def get_political_category_from_topic_lists(topic_list):
+  messages = [{
+    "role": "user",
+    "content": f"Generate a political category for these words: {topic_list}. Categories should be relevant and specific political issues. Respond only with a single category."
+  }]
+
+  completion = client.chat.completions.create(model="mistralai/Mistral-Nemo-Instruct-2407", messages=messages, max_tokens=500)
+  category = completion.choices[0].message.content.replace('"', "").replace('_', ' ').replace("*", "").replace('.', '')
+  category = re.sub(r'[^a-zA-Z0-9\s]', '', category)
+  return category
+
+topic_list = get_topic_lists_from_pdf()
+
+categories = set()
+for topic in topic_list:
+  categories.add(get_political_category_from_topic_lists(topic))
+
+print(f'Topics discussed during the hearing included {categories}.')
