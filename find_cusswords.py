@@ -1,25 +1,36 @@
-from detoxify import Detoxify
 import pandas as pd
+import matplotlib.pyplot as plt
 
-def reason(result):
-    val = 0
-    label = ""
-    for k, v in result.items():
-        if val < v:
-            label = k
-            val = v
-    return label, val
+# Read the CSV file
+df = pd.read_csv('scores.csv')
 
-labels = pd.read_csv('outputs.csv').fillna({'reason':""})
-_labels = labels[labels['predictions'] == True].head()
-scores = []
-for l in _labels['text']:
-    results = Detoxify('original').predict(l)
-    _, score = reason(results)
-    scores.append(score)
-_labels['score'] = scores
-combined_df = pd.merge(labels, _labels, how='left', on=['text']).fillna({'score':0,'reason':''})
-combined_df.to_csv('scores.csv',columns=['predictions_x','reason_x','text','score'], index=False)
+# Filter tags where predictions are True
+tags = df[df['predictions'] == True]
 
+# Extract scores and reason
+scores = tags['score']
+reasons = tags['reason']
 
+# Define bins from 0 to 1 with increments of 0.1
+bins = [i / 10 for i in range(11)]  # [0.0, 0.1, 0.2, ..., 1.0]
+labels = [f'{b:.1f} - {b + 0.1:.1f}' for b in bins[:-1]]  # Bin labels: '0.0 - 0.1', '0.1 - 0.2', etc.
 
+# Group by 'reason' and plot for each group
+for reason, group in tags.groupby('reason'):
+    # Categorize scores into these bins for the current group
+    binned_scores = pd.cut(group['score'], bins=bins, labels=labels, right=False)
+
+    # Count the frequency of each bin
+    score_counts = binned_scores.value_counts().sort_index()
+
+    # Create a bar plot for each reason
+    plt.figure(figsize=(10, 6))
+    plt.bar(score_counts.index, score_counts.values, color='skyblue')
+    plt.title(f'Frequency Distribution of Scores for Reason: {reason}', fontsize=16)
+    plt.xlabel('Score Range', fontsize=14)
+    plt.ylabel('Frequency', fontsize=14)
+    plt.xticks(rotation=45)  # Rotate x-axis labels for readability
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+    # Display the plot
+    plt.show()

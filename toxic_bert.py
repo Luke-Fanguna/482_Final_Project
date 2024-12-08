@@ -8,18 +8,19 @@ def reason(result):
         if val < v:
             label = k
             val = v
-    return label
+    return label, val
 
 start = len(pd.read_csv('outputs.csv'))
 df = pd.read_csv('utterance2324.csv').dropna(axis=0, how='any')
-for t in df['text'][start:]:
-    d = pd.read_csv('outputs.csv')
+for t in df['text'][33783:]:
+    d = pd.read_csv('scores.csv')
     results = Detoxify('original').predict(t)
     prediction = max(results.values()) > 0.04
     label = ""
+    val = 0
     if prediction:
-        label = reason(results)
-    new_row = pd.DataFrame({'predictions': [prediction], 'reason' : label, 'text': [t]})
+        label, val = reason(results)
+    new_row = pd.DataFrame({'predictions': [prediction], 'reason' : label, 'text': [t], 'scores': val})
     d = pd.concat([d, new_row], ignore_index=True)
     d.to_csv('outputs.csv', index=False)
 
