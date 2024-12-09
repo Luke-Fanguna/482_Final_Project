@@ -4,3 +4,4 @@ utterance*
 myenv
 .env
 scratch.py
+scores.csv
