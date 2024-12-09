@@ -3,3 +3,6 @@ DH2024_Corpus_Release/
 utterance*
 myenv
 .env
+scratch.py
+scores.csv
+outputs.csv
