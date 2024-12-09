@@ -215,7 +215,17 @@ def pprint_discussion(metadata, transcript_info):
     print(f"\t{line['text']}")
   print()
 
+"""
 discussion = bill_discussion_info(254743, "CA_201720180AB2411")
+discussion = bill_discussion_info(10003, "CA_201720180SR7")
+discussion = bill_discussion_info(254743, "CA_201720180AB2208")
+
+
+"""
+
+discussion = bill_discussion_info(254628, "CA_201720180SB1304")
+
+
 
 from transformers import AutoModelForSequenceClassification, pipeline, AutoTokenizer
 
@@ -281,7 +291,13 @@ def find_min_max_speaker_sentiment():
   min_speaker, max_speaker = None, None
   min_avg_sentiment, max_avg_sentiment = float('inf'), float('-inf')
 
-  for speaker, speaker_data in speakers.items():
+  # remove speakers who only speak once
+  filtered_speakers = {}
+  for speaker in speakers:
+    if len(speakers[speaker]['utterances']) > 1:
+      filtered_speakers[speaker] = speakers[speaker]
+
+  for speaker, speaker_data in filtered_speakers.items():
     avg_sentiment = speaker_data['avg_sentiment']
     
     if avg_sentiment < min_avg_sentiment:
@@ -319,7 +335,7 @@ def find_min_max_speaker_utterances():
 
 speakers = create_speakers()
 
-def print_stats():
+def calculate_and_print_stats():
   print(f'Num speakers: {len(speakers)}')
   total_num_utterances = sum([len(v['utterances']) for v in speakers.values()])
   print(f'Num utterances: {total_num_utterances}')
@@ -328,16 +344,17 @@ def print_stats():
   for speaker in speakers:
     avg_sentiment = speakers[speaker]['avg_sentiment']
     num_utterances = len(speakers[speaker]['utterances'])
-
+    speaking_proportion = num_utterances / total_num_utterances
+    speakers[speaker]['speaking_proportion'] = speaking_proportion
     print(f'{speaker} spoke {num_utterances} / {total_num_utterances} times')
     print(f'Avg sentiment of speaker {speaker}: {avg_sentiment}')
     print('\n')
 
-print_stats()
+calculate_and_print_stats()
 
 (min_speaker, min_avg_sentiment), (max_speaker, max_avg_sentiment) = find_min_max_speaker_sentiment()
-print(f"{min_speaker} was the most negative speaker during the hearing.")
-print(f"{max_speaker} was the most positive speaker during the hearing.")
+print(f"{min_speaker} was the most negative speaker throughout the course of the hearing.")
+print(f"{max_speaker} was the most positive speaker throughout the course of the hearing.")
 
 (min_utterances_speakers, min_utterances), (max_utterances_speakers, max_utterances) = find_min_max_speaker_utterances()
 print(f"{min_utterances_speakers} spoke the least during the hearing, speaking only {min_utterances} times.")
@@ -362,11 +379,12 @@ client = InferenceClient(api_key="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")
 
 def get_utterances_summary_mistral(speaker):
   utterances = speakers[speaker]['utterances']
+  print(utterances)
 
   messages = [
     {
       "role": "user",
-      "content": f"Provide a concise two sentence analysis of {speaker}'s opinion given their utterances: {' '.join(utterances)}"
+      "content": f"Provide a concise one or two sentence analysis of {speaker}'s opinion based only their utterances: {' '.join(utterances)}"
     }
   ]
 
@@ -430,6 +448,15 @@ topic_list = get_topic_lists_from_pdf()
 
 categories = set()
 for topic in topic_list:
+  print(topic)
   categories.add(get_political_category_from_topic_lists(topic))
 
 print(f'Topics discussed during the hearing included {categories}.')
+
+def detect_dominance():
+  for speaker in speakers:
+    speaking_proportion = speakers[speaker]['speaking_proportion']
+    if speaking_proportion > 0.4:
+      print(f'{speaker} dominated the discussion, participating in {speaking_proportion * 100:.2f}% of all discussion.')
+
+detect_dominance()
