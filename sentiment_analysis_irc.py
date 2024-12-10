@@ -68,7 +68,7 @@ def find_min_max_speaker_sentiment(speakers):
     if len(speakers[speaker]['utterances']) > 1:
       filtered_speakers[speaker] = speakers[speaker]
 
-  if len(filtered_speakers) == 0:
+  if len(filtered_speakers) == 0 or len(filtered_speakers) == 1:
     filtered_speakers = speakers
 
   for speaker, speaker_data in filtered_speakers.items():
@@ -148,7 +148,7 @@ def get_speaker_sentiment_phenoms(speakers):
 
   (min_utterances_speakers, min_utterances), (max_utterances_speakers, max_utterances) = find_min_max_speaker_utterances(speakers)
   phenoms.append(f"{join_multiple(min_utterances_speakers)} spoke the least during the hearing, speaking only {min_utterances} {'time' if min_utterances == 1 else 'times'}.")
-  phenoms.append(f"{join_multiple(max_utterances_speakers)} spoke the most during the hearing, speaking {max_utterances} {'time' if min_utterances == 1 else 'times'}.")
+  phenoms.append(f"{join_multiple(max_utterances_speakers)} spoke the most during the hearing, speaking {max_utterances} {'time' if max_utterances == 1 else 'times'}.")
 
   return phenoms
 
@@ -173,7 +173,7 @@ def get_utterances_summary_mistral(speakers, speaker):
   messages = [
     {
       "role": "user",
-      "content": f"Provide a complete and concise one or two sentence analysis of {speaker}'s opinion based only their utterances: {' '.join(utterances)}."
+      "content": f"Provide a complete and concise one or two sentence analysis of {speaker}'s opinion based only on their utterances: '{' '.join(utterances)}'"
     }
   ]
 
