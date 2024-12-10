@@ -132,20 +132,25 @@ class Bot():
         utterances = self.collectUtterance(did)
         if not utterances:
             self.irc.send(self.channel, f"{userName}: No utterances with this did were found.")
-
-        people = self.collectPeopleFromUtterances(utterances)
-
-        # TODO do NLP tasks on this list of utterances
+            return
+        
         self.irc.send(self.channel, f"{userName}: Utterances found. Bill discussed: {self.didMap[int(did)][0]} ")
 
-        sentiment_phenoms = get_phenoms(utterances, people)
-        for phenom in sentiment_phenoms:
-            self.irc.send(self.channel, f"{userName}: {phenom} ")
+        people = self.collectPeopleFromUtterances(utterances)
+        if people:
+            sentiment_phenoms = get_phenoms(utterances, people)
+            for phenom in sentiment_phenoms:
+                self.irc.send(self.channel, f"{userName}: {phenom} ")
+        else:
+            self.irc.send(self.channel, "Some utterances are unlabeled. Skipping detection of some phenoms.")
 
         print(utterances)
 
     def collectPeopleFromUtterances(self, utterances):
         pids = set([pid for _, pid in utterances])
+
+        if None in pids:
+            return None
         if len(pids) == 0:
             return []
         
