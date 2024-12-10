@@ -68,6 +68,9 @@ def find_min_max_speaker_sentiment(speakers):
     if len(speakers[speaker]['utterances']) > 1:
       filtered_speakers[speaker] = speakers[speaker]
 
+  if len(filtered_speakers) == 0:
+    filtered_speakers = speakers
+
   for speaker, speaker_data in filtered_speakers.items():
     avg_sentiment = speaker_data['avg_sentiment']
     
@@ -144,8 +147,8 @@ def get_speaker_sentiment_phenoms(speakers):
   phenoms.append(f"{max_speaker} was the most positive speaker throughout the course of the hearing. Here is a summary of what they said: {get_utterances_summary_mistral(speakers, max_speaker)}")
 
   (min_utterances_speakers, min_utterances), (max_utterances_speakers, max_utterances) = find_min_max_speaker_utterances(speakers)
-  phenoms.append(f"{join_multiple(min_utterances_speakers)} spoke the least during the hearing, speaking only {min_utterances} time(s).")
-  phenoms.append(f"{join_multiple(max_utterances_speakers)} spoke the most during the hearing, speaking {max_utterances} times.")
+  phenoms.append(f"{join_multiple(min_utterances_speakers)} spoke the least during the hearing, speaking only {min_utterances} {'time' if min_utterances == 1 else 'times'}.")
+  phenoms.append(f"{join_multiple(max_utterances_speakers)} spoke the most during the hearing, speaking {max_utterances} {'time' if min_utterances == 1 else 'times'}.")
 
   return phenoms
 
@@ -255,7 +258,8 @@ def detect_dominance(speakers):
 
   times_spoken = speakers[max_dominance_speaker]['times_spoken']
   words_spoken_proportion = speakers[max_dominance_speaker]['words_spoken_proportion']
-  return f'{max_dominance_speaker} dominated the discussion, speaking {times_spoken} time(s) and speaking in {words_spoken_proportion * 100:.2f}% of all discussion.'
+  time_or_times = 'time' if times_spoken == 1 else 'times'
+  return f'{max_dominance_speaker} dominated the discussion, speaking {times_spoken} {time_or_times} and speaking in {words_spoken_proportion * 100:.2f}% of all discussion.'
 
 
 def join_multiple(items):
@@ -269,7 +273,7 @@ def join_multiple(items):
 
 def get_phenoms(utterances, people_map):
   speakers = create_speakers(utterances, people_map)
-  calculate_stats(speakers, print_output=True)
+  calculate_stats(speakers, print_output=False)
 
   all_phenoms = []
   sentiment_phenoms = get_speaker_sentiment_phenoms(speakers)
