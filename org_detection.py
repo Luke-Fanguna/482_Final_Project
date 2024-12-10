@@ -9,9 +9,7 @@ from ast import literal_eval
 import mysql.connector
 from dotenv import load_dotenv
 from statistics import mean
-from transformers import AutoTokenizer, AutoModelForTokenClassification
 import nltk
-
 from nltk import word_tokenize, pos_tag, ne_chunk
 from nltk.tree import Tree
 
@@ -28,6 +26,15 @@ class bertModel:
         ner_results = self.nlp(utterance)
         tagged_outputs.append(ner_results)
         return tagged_outputs
+
+    def isOrgDetected(self, utterance):
+        ner_results = self.nlp(utterance)
+        if len(ner_results) < 1:
+            return False
+        for entry in ner_results:
+            if entry["entity"] == 'B-ORG' or entry["entity"] == 'I-ORG':
+                return True
+        return False
 
     def clean_word(self, word):
         """Clean up unwanted ## patterns from the word."""
@@ -138,6 +145,9 @@ class bertModel:
         for entry in merged_ents:
             entity_type = entry['entity']
             text = entry['word']
+            if len(text) == 1 or text.lower() == "sb" or text.lower() == "it" or text.lower() == "an":
+                # invalidate NEs of length 1, and some commonly mistaken pieces of text
+                continue
             if text in validated_orgs:
                 # Increase # of times org was mentioned
                 validated_orgs[text] = validated_orgs[text] + 1
@@ -158,9 +168,32 @@ class bertModel:
 
         return validated_orgs
 
-    def processUtterance(self, utterance):
+    def processUtterance(self, utterances_with_pid, people_map):
         # Return a dictionary that maps org --> # of occurences in the utterance
-        return self.validate_org_entities(self.merge_org_entities(self.createTaggedOutputs(utterance)), "allOrgs.csv")
+        peopleToOrgs = dict()
+        for entry in utterances_with_pid:
+            utterance = entry[0]
+            pid = entry[1]
+            if self.isOrgDetected(utterance):
+                valid_entities = self.validate_org_entities(
+                    self.merge_org_entities(self.createTaggedOutputs(utterance)), "allOrgs.csv")
+                if len(valid_entities) == 0:
+                    continue
+                person_key = (
+                    "Speaker", "Unknown") if pid is None else people_map[pid]
+
+                # Ensure the person_key exists in the dictionary
+                if person_key not in peopleToOrgs:
+                    peopleToOrgs[person_key] = {}
+
+                 # Merge `valid_entities` into the existing dictionary for the person
+                for org, occurrences in valid_entities.items():
+                    if org in peopleToOrgs[person_key]:
+                        peopleToOrgs[person_key][org] += occurrences
+                    else:
+                        peopleToOrgs[person_key][org] = occurrences
+
+        return peopleToOrgs
 
 
 class Connection:
