@@ -62,10 +62,10 @@ def get_person(pid):
 
     try:
         db = mysql.connector.connect(
-            host=os.getenv("SQL_DB_host"),
-            user=os.getenv("SQL_DB_user"),
-            password=os.getenv("SQL_DB_password"),
-            database=os.getenv("SQL_DB_database")
+            host=os.getenv("myhost"),
+            user=os.getenv("myuser"),
+            password=os.getenv("mypass"),
+            database=os.getenv("mydb")
         )
         cur = db.cursor()
         cur.execute(sql, (pid,))
@@ -89,22 +89,20 @@ def get_label(text):
 def create_phenom(uids):
     # TODO: Format as { PERSON said THIS, flagged as LABEL }
     utterance = pd.read_csv('utterance2324.csv')
+    output = []
     for uid in uids:
         person = get_person(utterance[utterance['uid'] == uid]['pid'].iloc[0])
         text = utterance[utterance['uid'] == uid]['text'].iloc[0]
         label = get_label(text)
 
-        print(f'{person} was tagged as {label} for saying {text}')
+        output.append(f'{person} was tagged for {label} by saying {text}')
+    return output
 
-def main():
-    did = sys.argv[1]
+def toxic_phenom(did):
     get_metadata(did)
     table = get_discussion(did)
     uids = find_phenom(table)
     if uids:
-        create_phenom(uids)
+        return create_phenom(uids)
     else:
-        print("Phenom was not found")
-
-if __name__ == '__main__':
-    main()
+        return None

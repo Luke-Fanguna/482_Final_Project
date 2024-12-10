@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import random as rand
 import csv
 from sentiment_analysis_irc import get_phenoms
+from toxic import toxic_phenom
 
 # TODO: update this file to reflect google doc requirements
 # TODO: return orgs also not mentioned in DB-- filter these with ORG, or INC, or institution etc. don't want random strings included
@@ -65,7 +66,7 @@ class Bot():
         load_dotenv()
         server = "irc.libera.chat" 	# Provide a valid server IP/Hostname
         port = 6667
-        self.channel = "##ScottPramukChannelTest"
+        self.channel = "##luke-testing-bot"
         self.botnick = f"sdl-bot"
 
         self.numConversations = 0
@@ -142,7 +143,14 @@ class Bot():
             for phenom in sentiment_phenoms:
                 self.irc.send(self.channel, f"{userName}: {phenom} ")
         else:
-            self.irc.send(self.channel, "Some utterances are unlabeled. Skipping detection of some phenoms.")
+            self.irc.send(self.channel, f"{userName}: Some utterances are unlabeled. Skipping detection of some phenoms.")
+
+        toxic = toxic_phenom(did)
+        if toxic:
+            for t in toxic:
+                self.irc.send(self.channel, f"{userName}: {t}")
+        else:
+            self.irc.send(self.channel, f"{userName}: Toxic Phenom was not detected")
 
         print(utterances)
 
