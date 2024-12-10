@@ -136,19 +136,48 @@ class Bot():
         # Collect all Utterance with the specified did
         utterances = self.collectUtterance(did)
         if not utterances:
-            self.irc.send(self.channel, f"{userName}: No utterances with this did were found.")
+            self.irc.send(self.channel, f"{
+                          userName}: No utterances with this did were found.")
             return
-        
-        self.irc.send(self.channel, f"{userName}: Utterances found. Bill discussed: {self.didMap[int(did)][0]} ")
+
+        self.irc.send(self.channel, f"{userName}: Utterances found. Bill discussed: {
+                      self.didMap[int(did)][0]} ")
         people = self.collectPeopleFromUtterances(utterances)
+        x = self.orgModel.processUtterance(
+            utterances, self.peopleFromUtterancesNoneAllowed(utterances)).items()
+        for (last_name, first_name), orgs in x:
+            curString = ""
+            for org, count in orgs.items():
+                if curString == "":
+                    curString = f"{userName}: {first_name} {last_name} mentioned '{
+                        org}' {count} time{'s' if count > 1 else ''}"
+                else:
+                    curString += f", '{org}' {count} time{'s' if count > 1 else ''}"
+            self.irc.send(self.channel, curString)
         if people:
             sentiment_phenoms = get_phenoms(utterances, people)
             for phenom in sentiment_phenoms:
                 self.irc.send(self.channel, f"{userName}: {phenom} ")
         else:
-            self.irc.send(self.channel, "Some utterances are unlabeled. Skipping detection of some phenoms.")
+            self.irc.send(
+                self.channel, "Some utterances are unlabeled. Skipping detection of some phenoms.")
 
-        # print(utterances)
+    def peopleFromUtterancesNoneAllowed(self, utterances):
+        pids = set([pid for _, pid in utterances])
+        if len(pids) == 0:
+            return []
+
+        person_ids = ', '.join(['%s'] * len(pids))
+
+        self.cursor = self.connection.cursor()
+        self.cursor.execute(
+            f"SELECT pid,last,first FROM Person WHERE pid IN ({person_ids})", list(pids))
+        result = self.cursor.fetchall()
+        self.cursor.close()
+
+        people_map = {pid: (last.strip(), first.strip())
+                      for pid, last, first in result}
+        return people_map
 
     def collectPeopleFromUtterances(self, utterances):
         pids = set([pid for _, pid in utterances])
