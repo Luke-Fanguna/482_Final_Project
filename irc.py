@@ -136,33 +136,25 @@ class Bot():
         # Collect all Utterance with the specified did
         utterances = self.collectUtterance(did)
         if not utterances:
-            self.irc.send(self.channel, f"{
-                          userName}: No utterances with this did were found.")
-
+            self.irc.send(self.channel, f"{userName}: No utterances with this did were found.")
+            return
+        
+        self.irc.send(self.channel, f"{userName}: Utterances found. Bill discussed: {self.didMap[int(did)][0]} ")
         people = self.collectPeopleFromUtterances(utterances)
-
-        # TODO do NLP tasks on this list of utterances
-        self.irc.send(self.channel, f"{userName}: Utterances found. Bill discussed: {
-                      self.didMap[int(did)][0]} ")
-        x = self.orgModel.processUtterance(utterances, people).items()
-        for (last_name, first_name), orgs in x:
-            curString = ""
-            for org, count in orgs.items():
-                if curString == "":
-                    curString = f"{userName}: {first_name} {last_name} mentioned '{
-                        org}' {count} time{'s' if count > 1 else ''}"
-                else:
-                    curString += f", '{org}' {count} time{'s' if count > 1 else ''}"
-            self.irc.send(self.channel, curString)
-
-        sentiment_phenoms = get_phenoms(utterances, people)
-        for phenom in sentiment_phenoms:
-            self.irc.send(self.channel, f"{userName}: {phenom} ")
+        if people:
+            sentiment_phenoms = get_phenoms(utterances, people)
+            for phenom in sentiment_phenoms:
+                self.irc.send(self.channel, f"{userName}: {phenom} ")
+        else:
+            self.irc.send(self.channel, "Some utterances are unlabeled. Skipping detection of some phenoms.")
 
         # print(utterances)
 
     def collectPeopleFromUtterances(self, utterances):
         pids = set([pid for _, pid in utterances])
+
+        if None in pids:
+            return None
         if len(pids) == 0:
             return []
 
