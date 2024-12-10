@@ -103,6 +103,8 @@ def main():
     uids = find_phenom(table)
     if uids:
         create_phenom(uids)
+    else:
+        print("Phenom was not found")
 
 if __name__ == '__main__':
     main()
