@@ -33,10 +33,10 @@ def get_metadata(did):
 
     try:
         db = mysql.connector.connect(
-            host=os.getenv("SQL_DB_host"),
-            user=os.getenv("SQL_DB_user"),
-            password=os.getenv("SQL_DB_password"),
-            database=os.getenv("SQL_DB_database")
+            host=os.getenv("myhost"),
+            user=os.getenv("myuser"),
+            password=os.getenv("mypass"),
+            database=os.getenv("mydb")
         )
         cur = db.cursor()
         cur.execute(sql, (did,))

@@ -335,8 +335,7 @@ def calcMetricsBert(bert, fileName):
 
         # Open the file for writing
         with open(output_file_path, 'a') as file:
-            file.write(f"Edit distance to validate organizations: {
-                       bert.editDist}\n")
+            file.write(f"Edit distance to validate organizations: {bert.editDist}\n")
             file.write(f"Macro Precision: {macro_precision:.2f}\n")
             file.write(f"Macro Recall: {macro_recall:.2f}\n")
             file.write(f"Micro Precision: {micro_precision:.2f}\n")
