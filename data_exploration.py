@@ -97,6 +97,9 @@ class bertModel:
         for entry in merged_ents:
             entity_type = entry['entity']
             text = entry['word']
+            if len(text) == 1:
+                # Invalidate any named entities with only 1 letter name
+                continue
             if text in validated_orgs:
                 # Increase # of times org was mentioned
                 validated_orgs[text] = validated_orgs[text] + 1
