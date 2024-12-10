@@ -156,7 +156,7 @@ class Bot():
         result = self.cursor.fetchall()
         self.cursor.close()
 
-        people_map = {pid: (last, first) for pid, last, first in result}
+        people_map = {pid: (last.strip(), first.strip()) for pid, last, first in result}
         return people_map
 
     def collectUtterance(self, did):

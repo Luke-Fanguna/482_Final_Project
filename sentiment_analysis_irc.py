@@ -130,8 +130,8 @@ def get_speaker_sentiment_phenoms(speakers):
   phenoms.append(f"{max_speaker} was the most positive speaker throughout the course of the hearing. Here is a summary of what they said: {get_utterances_summary_mistral(speakers, max_speaker)}")
 
   (min_utterances_speakers, min_utterances), (max_utterances_speakers, max_utterances) = find_min_max_speaker_utterances(speakers)
-  phenoms.append(f"{min_utterances_speakers} spoke the least during the hearing, speaking only {min_utterances} times.")
-  phenoms.append(f"{max_utterances_speakers} spoke the most during the hearing, speaking {max_utterances} times.")
+  phenoms.append(f"{join_multiple(min_utterances_speakers)} spoke the least during the hearing, speaking only {min_utterances} times.")
+  phenoms.append(f"{join_multiple(max_utterances_speakers)} spoke the most during the hearing, speaking {max_utterances} times.")
 
   return phenoms
 
@@ -224,7 +224,7 @@ def get_topics_discussed(utterances, people_map):
   for topic in topic_list:
     categories.add(get_political_category_from_topic_lists(topic))
 
-  return f'Topics discussed during the hearing included {categories}.'
+  return f'Topics discussed during the hearing included {join_multiple(list(categories))}.'
 
 
 def detect_dominance(speakers):
@@ -234,6 +234,15 @@ def detect_dominance(speakers):
       return f'{speaker} dominated the discussion, participating in {speaking_proportion * 100:.2f}% of all discussion.'
 
   return None
+
+
+def join_multiple(items):
+  if len(items) > 1:
+    result = ', '.join(items[:-1]) + ', and ' + items[-1]
+  else:
+    result = items[0] if items else ''
+
+  return result
 
 
 def get_phenoms(utterances, people_map):
