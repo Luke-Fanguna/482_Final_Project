@@ -9,6 +9,7 @@ import mysql.connector
 from dotenv import load_dotenv
 import random as rand
 import csv
+from sentiment_analysis_irc import get_phenoms
 
 # TODO: update this file to reflect google doc requirements
 # TODO: return orgs also not mentioned in DB-- filter these with ORG, or INC, or institution etc. don't want random strings included
@@ -107,53 +108,68 @@ class Bot():
             if str(key).startswith(str(num)):
                 res.append(key)
         if not res:
-            self.irc.send(self.channel, f"{
-                userName}: No entries in Utterance table with DID that starts with {num}. Instead, try {self.valid_did_stem(num)}")
+            self.irc.send(self.channel, f"{userName}: No entries in Utterance table with DID that starts with {num}. Instead, try {self.valid_did_stem(num)}")
             return
         if len(res) > 40:
             res = rand.sample(res, 40)
-            self.irc.send(self.channel, f"{
-                userName}: 40 Randomly selected possible DID values:")
+            self.irc.send(self.channel, f"{userName}: 40 Randomly selected possible DID values:")
         else:
-            self.irc.send(self.channel, f"{
-                userName}: Possible DID values:")
+            self.irc.send(self.channel, f"{userName}: Possible DID values:")
         for i in range(0, len(res), 10):
             if i + 10 < len(res):
-                self.irc.send(self.channel, f"{
-                    userName}: {res[i:i+10]}")
+                self.irc.send(self.channel, f"{userName}: {res[i:i+10]}")
             else:
-                self.irc.send(self.channel, f"{
-                    userName}: {res[i:]}")
+                self.irc.send(self.channel, f"{userName}: {res[i:]}")
 
     def on_show(self, did, userName):
         if not did.isdigit():
-            self.irc.send(self.channel, f"{
-                userName}: DID must be an integer.")
+            self.irc.send(self.channel, f"{userName}: DID must be an integer.")
             return
         elif did.isdigit() and int(did) not in self.didMap.keys():
-            self.irc.send(self.channel, f"{
-                userName}: Invalid did selected.")
+            self.irc.send(self.channel, f"{userName}: Invalid did selected.")
             return
         # Collect all Utterance with the specified did
         utterances = self.collectUtterance(did)
         if not utterances:
-            self.irc.send(self.channel, f"{
-                userName}: No utterances with this did were found.")
+            self.irc.send(self.channel, f"{userName}: No utterances with this did were found.")
+
+        people = self.collectPeopleFromUtterances(utterances)
+
         # TODO do NLP tasks on this list of utterances
-        self.irc.send(self.channel, f"{
-            userName}: Utterances found. Bill discussed: {self.didMap[int(did)][0]} ")
+        self.irc.send(self.channel, f"{userName}: Utterances found. Bill discussed: {self.didMap[int(did)][0]} ")
+
+        sentiment_phenoms = get_phenoms(utterances, people)
+        for phenom in sentiment_phenoms:
+            self.irc.send(self.channel, f"{userName}: {phenom} ")
+
         print(utterances)
+
+    def collectPeopleFromUtterances(self, utterances):
+        pids = set([pid for _, pid in utterances])
+        if len(pids) == 0:
+            return []
+        
+        person_ids = ', '.join(['%s'] * len(pids))
+
+        self.cursor = self.connection.cursor()
+        self.cursor.execute(f"SELECT pid,last,first FROM Person WHERE pid IN ({person_ids})", list(pids))
+        result = self.cursor.fetchall()
+        self.cursor.close()
+
+        people_map = {pid: (last, first) for pid, last, first in result}
+        return people_map
 
     def collectUtterance(self, did):
         utterances = []
         self.cursor = self.connection.cursor()
-        self.cursor.execute(
+        self.cursor.execute(    
             f"SELECT text,pid FROM Utterance where did = {did}")
         rows_table = self.cursor.fetchall()  # Fetch the results of the first query
         self.cursor.close()
         for row in rows_table:
             # list of the form: (text,pid of speaker)
             utterances.append((row[0], row[1]))
+        print(utterances)
         return utterances
 
     def generateBIDs(self):
@@ -169,18 +185,14 @@ class Bot():
                 self.didMap[int(did)] = (str(bid), int(hid))
 
     def on_quit(self, userName):
-        self.irc.send(self.channel, f"{
-                      userName}: You are mean. I'm leaving now then.")
+        self.irc.send(self.channel, f"{userName}: You are mean. I'm leaving now then.")
         self.irc.command("QUIT")
         sys.exit()
 
     def on_who(self, userName):
-        resp1 = f"{userName}: My name is {
-            self.botnick}. I was created by Scott, Luke, Daniel, CSC 482-01"
-        resp2 = f"{userName}: Use the command: [{
-            self.botnick}: list [integer]] to get a list of valid discussion IDs that begin with the digits in the integer."
-        resp3 = f"{userName}: Use the command: [{
-            self.botnick}: show [did]] where did is a valid discussion ID and I will output all phenoms detected in utterances tagged with this did."
+        resp1 = f"{userName}: My name is {self.botnick}. I was created by Scott, Luke, Daniel, CSC 482-01"
+        resp2 = f"{userName}: Use the command: [{self.botnick}: list [integer]] to get a list of valid discussion IDs that begin with the digits in the integer."
+        resp3 = f"{userName}: Use the command: [{self.botnick}: show [did]] where did is a valid discussion ID and I will output all phenoms detected in utterances tagged with this did."
         self.irc.send(self.channel, resp1)
         self.irc.send(self.channel, resp2)
         self.irc.send(self.channel, resp3)
