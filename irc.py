@@ -158,7 +158,7 @@ class Bot():
                     curString += f", '{org}' {count} time{'s' if count > 1 else ''}"
             self.irc.send(self.channel, curString)
             if peopleCounter % 3 == 0:
-                time.sleep(1)
+                time.sleep(3)
         if people:
             sentiment_phenoms = get_phenoms(utterances, people)
             for phenom in sentiment_phenoms:
