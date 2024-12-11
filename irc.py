@@ -14,11 +14,6 @@ from toxic import toxic_phenom
 from org_detection import bertModel
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 
-# TODO: update this file to reflect google doc requirements
-# TODO: return orgs also not mentioned in DB-- filter these with ORG, or INC, or institution etc. don't want random strings included
-# list [number] shows all possible did for a given number. ex: [list 141] -> 14111, 141453, etc. basically all possible did given a number
-# show [did] will show whether a phenom was detected in a hearing
-
 
 class IRC:
     def __init__(self):
@@ -105,8 +100,7 @@ class Bot():
         return closeDID
 
     def on_list(self, num, userName):
-        # Need to get a list of all dids
-        # TODO what to do when the list is too long to display all values? Pick a random sample?
+
         res = []
         for key in self.didMap.keys():
             if str(key).startswith(str(num)):
@@ -164,14 +158,16 @@ class Bot():
             for phenom in sentiment_phenoms:
                 self.irc.send(self.channel, f"{userName}: {phenom} ")
         else:
-            self.irc.send(self.channel, f"{userName}: Some utterances are unlabeled. Skipping detection of some phenoms.")
+            self.irc.send(self.channel, f"{
+                          userName}: Some utterances are unlabeled. Skipping detection of some phenoms.")
 
         toxic = toxic_phenom(did)
         if toxic:
             for t in toxic:
                 self.irc.send(self.channel, f"{userName}: {t}")
         else:
-            self.irc.send(self.channel, f"{userName}: Toxic Phenom was not detected")
+            self.irc.send(self.channel, f"{
+                          userName}: Toxic Phenom was not detected")
 
     def peopleFromUtterancesNoneAllowed(self, utterances):
         pids = set([pid for _, pid in utterances])
