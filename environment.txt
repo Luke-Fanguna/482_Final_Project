@@ -1,0 +1,25 @@
+accelerate==1.2.0
+datasets==3.2.0
+detoxify==0.5.2
+gensim==4.3.3
+huggingface_hub==0.26.2
+mysql-connector-python==9.1.0
+mysqlclient==2.2.6
+nltk==3.9.1
+pandas==2.2.3
+python-dotenv==1.0.1
+Levenshtein==0.26.1
+textsum==0.2.2
+transformers==4.46.3
+
+
+Execution Instructions: 
+Use command: 'python irc.py' to instantiate the IRC chatbot
+Change value of 'self.channel' in 'Bot' class within 'irc.py' to switch IRC channels
+
+IRC Instructions:
+In the IRC, use command: 'sdl-bot: usage' for information on how to interact with the bot
+In the IRC, use command: 'sdl-bot: die' to stop the program
+
+Report latex source: https://www.overleaf.com/project/6758afe1fde9151e34323e6b
+Github repository: https://github.com/Luke-Fanguna/482_Final_Project/
