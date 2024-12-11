@@ -145,7 +145,9 @@ class Bot():
         people = self.collectPeopleFromUtterances(utterances)
         x = self.orgModel.processUtterance(
             utterances, self.peopleFromUtterancesNoneAllowed(utterances)).items()
+        peopleCounter = 0
         for (last_name, first_name), orgs in x:
+            peopleCounter += 1
             curString = ""
             for org, count in orgs.items():
                 if curString == "":
@@ -154,6 +156,8 @@ class Bot():
                 else:
                     curString += f", '{org}' {count} time{'s' if count > 1 else ''}"
             self.irc.send(self.channel, curString)
+            if peopleCounter % 3 == 0:
+                time.sleep(1000)
         if people:
             sentiment_phenoms = get_phenoms(utterances, people)
             for phenom in sentiment_phenoms:
