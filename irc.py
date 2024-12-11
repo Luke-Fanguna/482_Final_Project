@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import random as rand
 import csv
 from sentiment_analysis_irc import get_phenoms
+from toxic import toxic_phenom
 from org_detection import bertModel
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 
@@ -67,7 +68,7 @@ class Bot():
         load_dotenv()
         server = "irc.libera.chat" 	# Provide a valid server IP/Hostname
         port = 6667
-        self.channel = "##ScottPramukChannelTest"
+        self.channel = "##luke-testing-bot"
         self.botnick = f"sdl-bot"
         self.orgModel = bertModel(3, model=AutoModelForTokenClassification.from_pretrained(
             "dslim/bert-base-NER"), tokenizer=AutoTokenizer.from_pretrained("dslim/bert-base-NER"))
@@ -163,8 +164,14 @@ class Bot():
             for phenom in sentiment_phenoms:
                 self.irc.send(self.channel, f"{userName}: {phenom} ")
         else:
-            self.irc.send(
-                self.channel, "Some utterances are unlabeled. Skipping detection of some phenoms.")
+            self.irc.send(self.channel, f"{userName}: Some utterances are unlabeled. Skipping detection of some phenoms.")
+
+        toxic = toxic_phenom(did)
+        if toxic:
+            for t in toxic:
+                self.irc.send(self.channel, f"{userName}: {t}")
+        else:
+            self.irc.send(self.channel, f"{userName}: Toxic Phenom was not detected")
 
     def peopleFromUtterancesNoneAllowed(self, utterances):
         pids = set([pid for _, pid in utterances])

@@ -68,6 +68,9 @@ def find_min_max_speaker_sentiment(speakers):
     if len(speakers[speaker]['utterances']) > 1:
       filtered_speakers[speaker] = speakers[speaker]
 
+  if len(filtered_speakers) == 0 or len(filtered_speakers) == 1:
+    filtered_speakers = speakers
+
   for speaker, speaker_data in filtered_speakers.items():
     avg_sentiment = speaker_data['avg_sentiment']
     
@@ -116,6 +119,8 @@ def calculate_stats(speakers, print_output=False):
     avg_sentiment = speakers[speaker]['avg_sentiment']
     num_times_spoken = len(speakers[speaker]['utterances'])
     speaking_proportion = num_times_spoken / total_times_spoken
+    speakers[speaker]['times_spoken_proportion'] = speaking_proportion
+    speakers[speaker]['times_spoken'] = num_times_spoken
     speakers[speaker]['speaking_proportion'] = speaking_proportion
     speakers[speaker]['parsed_words'] = [simple_preprocess(utterance) for utterance in speakers[speaker]['utterances']]
     speakers[speaker]['num_words_spoken'] = sum([len(parsed_word) for parsed_word in speakers[speaker]['parsed_words']])
@@ -126,7 +131,9 @@ def calculate_stats(speakers, print_output=False):
       print('\n')
 
   total_num_words_spoken = sum([speakers[speaker]['num_words_spoken'] for speaker in speakers])
-  print(f'Total words spoken: {total_num_words_spoken}')
+  
+  if print_output:
+    print(f'Total words spoken: {total_num_words_spoken}')
 
   for speaker in speakers:
     speakers[speaker]['words_spoken_proportion'] = speakers[speaker]['num_words_spoken'] / total_num_words_spoken
@@ -140,8 +147,8 @@ def get_speaker_sentiment_phenoms(speakers):
   phenoms.append(f"{max_speaker} was the most positive speaker throughout the course of the hearing. Here is a summary of what they said: {get_utterances_summary_mistral(speakers, max_speaker)}")
 
   (min_utterances_speakers, min_utterances), (max_utterances_speakers, max_utterances) = find_min_max_speaker_utterances(speakers)
-  phenoms.append(f"{join_multiple(min_utterances_speakers)} spoke the least during the hearing, speaking only {min_utterances} times.")
-  phenoms.append(f"{join_multiple(max_utterances_speakers)} spoke the most during the hearing, speaking {max_utterances} times.")
+  phenoms.append(f"{join_multiple(min_utterances_speakers)} spoke the least during the hearing, speaking only {min_utterances} {'time' if min_utterances == 1 else 'times'}.")
+  phenoms.append(f"{join_multiple(max_utterances_speakers)} spoke the most during the hearing, speaking {max_utterances} {'time' if max_utterances == 1 else 'times'}.")
 
   return phenoms
 
@@ -162,12 +169,11 @@ client = InferenceClient(api_key="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")
 
 def get_utterances_summary_mistral(speakers, speaker):
   utterances = speakers[speaker]['utterances']
-  print(utterances)
 
   messages = [
     {
       "role": "user",
-      "content": f"Provide a complete and concise one or two sentence analysis of {speaker}'s opinion based only their utterances: {' '.join(utterances)}."
+      "content": f"Provide a complete and concise one or two sentence analysis of {speaker}'s opinion based only on their utterances: '{' '.join(utterances)}'"
     }
   ]
 
@@ -238,12 +244,22 @@ def get_topics_discussed(utterances, people_map):
 
 
 def detect_dominance(speakers):
-  max_spoken_words_proportion_speaker = max(speakers, key=lambda speaker: speakers[speaker]['words_spoken_proportion'])
-  proportion = speakers[max_spoken_words_proportion_speaker]['words_spoken_proportion']
-  if proportion > 0.4:
-    return f'{max_spoken_words_proportion_speaker} dominated the discussion, participating in {proportion * 100:.2f}% of all discussion.'
+  max_dominance = float('-inf')
+  max_dominance_speaker = None
 
-  return None
+  for speaker in speakers:
+    words_spoken_proportion = speakers[speaker]['words_spoken_proportion']
+    times_spoken_proportion = speakers[speaker]['times_spoken_proportion']
+
+    dominance_score = times_spoken_proportion * 0.3 + words_spoken_proportion * 0.7
+    if dominance_score > max_dominance:
+      max_dominance = dominance_score
+      max_dominance_speaker = speaker
+
+  times_spoken = speakers[max_dominance_speaker]['times_spoken']
+  words_spoken_proportion = speakers[max_dominance_speaker]['words_spoken_proportion']
+  time_or_times = 'time' if times_spoken == 1 else 'times'
+  return f'{max_dominance_speaker} dominated the discussion, speaking {times_spoken} {time_or_times} and speaking in {words_spoken_proportion * 100:.2f}% of all discussion.'
 
 
 def join_multiple(items):
@@ -257,7 +273,7 @@ def join_multiple(items):
 
 def get_phenoms(utterances, people_map):
   speakers = create_speakers(utterances, people_map)
-  calculate_stats(speakers, print_output=True)
+  calculate_stats(speakers, print_output=False)
 
   all_phenoms = []
   sentiment_phenoms = get_speaker_sentiment_phenoms(speakers)
