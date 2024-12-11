@@ -1,3 +1,5 @@
 textsum
 detoxify
 gensim
+huggingface-hub
+textsum
