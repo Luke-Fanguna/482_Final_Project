@@ -11,3 +11,12 @@ python-dotenv==1.0.1
 Levenshtein==0.26.1
 textsum==0.2.2
 transformers==4.46.3
+
+
+Execution Instructions: 
+Use command: 'python irc.py' to instantiate the IRC chatbot
+Change value of 'self.channel' in 'Bot' class within 'irc.py' to switch IRC channels
+
+IRC Instructions:
+In the IRC, use command: 'sdl-bot: usage' for information on how to interact with the bot
+In the IRC, use command: 'sdl-bot: die' to stop the program
