@@ -3,3 +3,4 @@ detoxify
 gensim
 nltk
 Levenshtein
+pandas
