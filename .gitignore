@@ -1,6 +1,6 @@
 __MACOSX/._DH2024_Corpus_Release
 DH2024_Corpus_Release/
-utterance*
+code/utterance*
 myenv
 .env
 scratch.py

@@ -1,0 +1,30 @@
+Edit distance to validate organizations: 1
+Macro Precision: 0.65
+Macro Recall: 0.62
+Micro Precision: 0.51
+Micro Recall: 0.49
+Macro F1 Score: 0.61
+Micro F1 Score: 0.50
+Edit distance to validate organizations: 2
+Macro Precision: 0.65
+Macro Recall: 0.65
+Micro Precision: 0.50
+Micro Recall: 0.50
+Macro F1 Score: 0.63
+Micro F1 Score: 0.50
+Edit distance to validate organizations: 3
+Macro Precision: 0.62
+Macro Recall: 0.65
+Micro Precision: 0.49
+Micro Recall: 0.51
+Macro F1 Score: 0.62
+Micro F1 Score: 0.50
+Edit distance to validate organizations: 4
+Macro Precision: 0.62
+Macro Recall: 0.65
+Micro Precision: 0.49
+Micro Recall: 0.51
+Macro F1 Score: 0.62
+Micro F1 Score: 0.50
+
+

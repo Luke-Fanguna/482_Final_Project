@@ -1,6 +1,0 @@
-Macro Precision: 0.41
-Macro Recall: 0.44
-Micro Precision: 0.48
-Micro Recall: 0.52
-Macro F1 Score: 0.42
-Micro F1 Score: 0.50

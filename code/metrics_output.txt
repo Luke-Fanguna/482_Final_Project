@@ -1,0 +1,4 @@
+Average number of words in each utterance: 88.35432
+Percent of utterances with org detected: 0.15283
+Total utterances: 100000
+Total words: 8835432
