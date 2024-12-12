@@ -13,7 +13,8 @@ textsum==0.2.2
 transformers==4.46.3
 
 
-Execution Instructions: 
+Execution Instructions:
+Since the utterances2324.csv was too large, you have to unzip it to have the program run
 Use command: 'python irc.py' to instantiate the IRC chatbot
 Change value of 'self.channel' in 'Bot' class within 'irc.py' to switch IRC channels
 
